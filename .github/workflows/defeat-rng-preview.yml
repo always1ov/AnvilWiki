@@ -1,0 +1,30 @@
+name: Build Defeat RNG English preview
+on:
+  push:
+    branches: [launch/defeat-anime-rng]
+  pull_request:
+    paths:
+      - 'launch/**'
+      - 'scripts/build-defeat-rng.mjs'
+      - '.github/workflows/defeat-rng-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 11.1.1
+          run_install: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node --check scripts/build-defeat-rng.mjs
+      - run: node scripts/build-defeat-rng.mjs
+      - run: test -f dist/index.html && test -d dist/guides/gameplay-overview
