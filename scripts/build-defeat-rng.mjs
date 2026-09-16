@@ -13,9 +13,20 @@ const write = (p, text) => {
   fs.writeFileSync(target, text);
 };
 const answers = JSON.parse(read('launch/defeat-anime-rng.answers.json'));
-const url = new URL(process.env.SITE_URL || process.env.CF_PAGES_URL || `https://${answers[2]}`);
-if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash) {
-  throw new Error('SITE_URL must be an HTTPS origin without a path, query or fragment.');
+// The project URL has now been confirmed by its owner. CF_PAGES_URL identifies
+// the current deployment, so it must not determine canonical/sitemap URLs.
+// A real custom domain can still be supplied through SITE_URL later.
+const defaultSiteUrl = 'https://anvilwiki-786.pages.dev';
+const configuredSiteUrl = process.env.SITE_URL?.trim();
+const url = new URL(configuredSiteUrl || defaultSiteUrl);
+if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash || url.username || url.password) {
+  throw new Error('SITE_URL must be an HTTPS origin without credentials, a path, query or fragment.');
+}
+// The original wrangler.toml may still expose the template demo URL before
+// apply-template rewrites it in the disposable checkout. Never publish it.
+if (['anvil.wiki', 'www.anvil.wiki', 'anvilwiki.pages.dev'].includes(url.hostname)) {
+  console.warn(`Ignoring template demo SITE_URL ${url.origin}; using ${defaultSiteUrl}.`);
+  url.href = defaultSiteUrl;
 }
 answers[2] = url.host;
 const env = { ...process.env, SITE_URL: url.origin };
