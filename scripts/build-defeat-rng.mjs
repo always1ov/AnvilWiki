@@ -1,49 +1,32 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { applyRelease } from '../launch/release.mjs';
 
-// Run from the repository root after pnpm install. The upstream template is
-// initialized in the disposable build checkout; main is never changed.
 const root = process.cwd();
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-const write = (p, text) => {
-  const target = path.join(root, p);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, text);
-};
-const answers = JSON.parse(read('launch/defeat-anime-rng.answers.json'));
-// The project URL has now been confirmed by its owner. CF_PAGES_URL identifies
-// the current deployment, so it must not determine canonical/sitemap URLs.
-// A real custom domain can still be supplied through SITE_URL later.
 const defaultSiteUrl = 'https://anvilwiki-786.pages.dev';
-const configuredSiteUrl = process.env.SITE_URL?.trim();
-const url = new URL(configuredSiteUrl || defaultSiteUrl);
+const url = new URL(process.env.SITE_URL?.trim() || defaultSiteUrl);
 if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash || url.username || url.password) {
-  throw new Error('SITE_URL must be an HTTPS origin without credentials, a path, query or fragment.');
+  throw new Error('SITE_URL must be an HTTPS origin without credentials, path, query or fragment.');
 }
-// The original wrangler.toml may still expose the template demo URL before
-// apply-template rewrites it in the disposable checkout. Never publish it.
-if (['anvil.wiki', 'www.anvil.wiki', 'anvilwiki.pages.dev'].includes(url.hostname)) {
-  console.warn(`Ignoring template demo SITE_URL ${url.origin}; using ${defaultSiteUrl}.`);
-  url.href = defaultSiteUrl;
-}
-answers[2] = url.host;
+if (['anvil.wiki', 'www.anvil.wiki', 'anvilwiki.pages.dev'].includes(url.hostname)) url.href = defaultSiteUrl;
+const publishReady = process.env.PUBLISH_READY !== 'false';
 const env = { ...process.env, SITE_URL: url.origin };
 for (const key of Object.keys(env)) {
   if (/^PUBLIC_(ADSENSE|ADSTERRA|GISCUS|SPONSOR|GA_ID|CF_BEACON)/.test(key)) env[key] = '';
 }
+const answers = JSON.parse(fs.readFileSync('launch/defeat-anime-rng.answers.json', 'utf8'));
+answers[2] = url.host;
+answers[4] = 'Independent Defeat Anime RNG codes, beginner guides and probability tools, with linked sources and clear verification limits.';
+answers[13] = 'guides,codes,tools';
 const answersFile = 'launch/.build-answers.json';
-write(answersFile, `${JSON.stringify(answers, null, 2)}\n`);
+fs.writeFileSync(answersFile, JSON.stringify(answers));
 try {
-  execFileSync(pnpm, ['exec', 'tsx', 'scripts/apply-template.ts', '--answers', answersFile], {
-    cwd: root, env, stdio: 'inherit',
-  });
+  execFileSync(pnpm, ['exec', 'tsx', 'scripts/apply-template.ts', '--answers', answersFile], { cwd: root, env, stdio: 'inherit' });
 } finally {
-  fs.rmSync(path.join(root, answersFile), { force: true });
+  fs.rmSync(answersFile, { force: true });
 }
-
-// Keep starter articles out of production. Preserve non-scaffold content.
 function hideScaffolds(dir) {
   if (!fs.existsSync(dir)) return;
   for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -52,42 +35,32 @@ function hideScaffolds(dir) {
     else if (/\.mdx?$/.test(item.name)) {
       let text = fs.readFileSync(file, 'utf8');
       if (!text.includes('Replace this scaffold with your article.')) continue;
-      text = /^draft:/m.test(text)
-        ? text.replace(/^draft:.*$/m, 'draft: true')
-        : text.replace(/^---\r?\n/, '---\ndraft: true\n');
+      text = /^draft:/m.test(text) ? text.replace(/^draft:.*$/m, 'draft: true') : text.replace(/^---\r?\n/, '---\ndraft: true\n');
       fs.writeFileSync(file, text);
     }
   }
 }
-hideScaffolds(path.join(root, 'src/content/wiki'));
-write('src/content/wiki/en/guides/gameplay-overview.mdx', read('launch/content/gameplay-overview.mdx'));
+hideScaffolds('src/content/wiki');
+const commit = process.env.CF_PAGES_COMMIT_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+applyRelease({ siteUrl: url.origin, commit, publishReady });
 
-// Replace demo share artwork with a text-only site card, not fabricated game art.
+// Neutral branded graphics, not invented game screenshots. All assets are local.
 const sharp = (await import('sharp')).default;
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><rect width="1200" height="630" fill="#111827"/><rect x="64" y="76" width="10" height="478" rx="5" fill="#a78bfa"/><text x="110" y="265" fill="white" font-size="68" font-family="sans-serif" font-weight="bold">Defeat Anime RNG</text><text x="114" y="340" fill="#c4b5fd" font-size="38" font-family="sans-serif">Independent English Game Guide</text><text x="114" y="490" fill="#94a3b8" font-size="26" font-family="sans-serif">Source-backed basics. Clear verification limits.</text></svg>`;
-fs.mkdirSync(path.join(root, 'public/images'), { recursive: true });
-await sharp(Buffer.from(svg)).webp().toFile(path.join(root, 'public/images/hero.webp'));
-const icon = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" rx="96" fill="#7c3aed"/><text x="256" y="310" text-anchor="middle" fill="white" font-size="176" font-family="sans-serif" font-weight="bold">DAR</text></svg>`;
-write('public/favicon.svg', icon);
-for (const [name, size] of [['favicon.png', 64], ['apple-touch-icon.png', 180]]) {
-  await sharp(Buffer.from(icon)).resize(size, size).png().toFile(path.join(root, 'public', name));
-}
-const manifest = JSON.parse(read('public/manifest.json'));
+fs.mkdirSync('public/images', { recursive: true });
+const card = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><rect width="1200" height="630" fill="#211439"/><rect x="70" y="76" width="9" height="478" rx="4" fill="#a78bfa"/><text x="118" y="225" fill="#d8c7f2" font-size="27" font-family="sans-serif">DAR GUIDE / INDEPENDENT ENGLISH GUIDE</text><text x="114" y="337" fill="white" font-size="69" font-family="sans-serif" font-weight="bold">Defeat Anime RNG</text><text x="118" y="420" fill="#d8c7f2" font-size="34" font-family="sans-serif">Codes. Guides. Tools with clear assumptions.</text></svg>';
+await sharp(Buffer.from(card)).webp().toFile('public/images/hero.webp');
+const icon = '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" rx="96" fill="#7c3aed"/><text x="256" y="310" text-anchor="middle" fill="white" font-size="176" font-family="sans-serif" font-weight="bold">DAR</text></svg>';
+fs.writeFileSync('public/favicon.svg', icon);
+for (const [name, size] of [['favicon.png', 64], ['favicon-32x32.png', 32], ['apple-touch-icon.png', 180]]) await sharp(Buffer.from(icon)).resize(size, size).png().toFile(path.join('public', name));
+const manifest = JSON.parse(fs.readFileSync('public/manifest.json', 'utf8'));
 for (const item of manifest.icons || []) {
   if (!item.src || !/\.(png|webp)$/i.test(item.src)) continue;
-  const target = path.resolve(root, 'public', item.src.replace(/^\//, ''));
-  const publicRoot = path.resolve(root, 'public') + path.sep;
-  if (!target.startsWith(publicRoot)) throw new Error('Unsafe manifest icon path.');
+  const target = path.resolve('public', item.src.replace(/^\//, ''));
+  if (!target.startsWith(path.resolve('public') + path.sep)) throw new Error('Unsafe manifest icon path.');
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const size = Math.min(1024, Math.max(32, parseInt(item.sizes, 10) || 512));
   await sharp(Buffer.from(icon)).resize(size, size).toFile(target);
 }
-
-// This is an explicitly labelled deployment preview, not an ad-ready launch.
-// Remove this gate only after replacing/reviewing the remaining site copy.
-if (process.env.PUBLISH_READY !== 'true') {
-  const existingHeaders = fs.existsSync('public/_headers') ? read('public/_headers') : '';
-  write('public/_headers', `${existingHeaders}\n/*\n  X-Robots-Tag: noindex, nofollow\n`);
-}
 execFileSync(pnpm, ['build'], { cwd: root, env, stdio: 'inherit' });
-console.log(`Built English preview for ${url.origin}. Ads disabled. No game login required.`);
+execFileSync(process.execPath, ['launch/verify.mjs'], { cwd: root, env, stdio: 'inherit' });
+console.log(`DAR Guide release built and audited for ${url.origin}; search indexing ${publishReady ? 'allowed' : 'disabled'}.`);

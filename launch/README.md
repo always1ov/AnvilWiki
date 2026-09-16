@@ -1,29 +1,36 @@
-# Defeat Anime RNG — English deployment preview
+# DAR Guide production branch
 
-Decision: stop keyword screening and Roblox installer troubleshooting. Use this game for a low-cost first deployment experiment, not as a guaranteed traffic or revenue opportunity. Preserve the upstream `main` branch.
+Production site: https://anvilwiki-786.pages.dev/
 
-## Cloudflare Pages
+This branch publishes an independent English Defeat Anime RNG guide, built from AnvilWiki. `main` remains the original template. Deploy **launch/defeat-anime-rng**, with `node scripts/build-defeat-rng.mjs`, output `dist`, Node 24 and pnpm 11.1.1.
 
-- Repository: `always1ov/AnvilWiki`
-- Production branch: `launch/defeat-anime-rng`
-- Suggested project name: `defeat-rng-guide-always1ov` (availability is not confirmed)
-- Framework preset: Astro
-- Build command: `node scripts/build-defeat-rng.mjs`
-- Build output directory: `dist`
-- Root directory: repository root
-- Build variables: `NODE_VERSION=24`, `PNPM_VERSION=11.1.1`
-- Optional `SITE_URL`: the actual HTTPS origin, without a trailing path. Otherwise the build uses Cloudflare `CF_PAGES_URL`.
+## Published scope
 
-Cloudflare must first install the repository dependencies. There is no paid API, database, server, game login or payment setup in this build. Do not use the original `pnpm build` by itself on this branch: it bypasses the initialization script.
+Ten core content pages: one code comparison, seven practical guides and two interactive calculators. Supporting pages cover About, Editorial Policy, Contact, FAQ, Privacy, Terms and Attribution. The homepage is a compact English entry point rather than the original single-card preview.
 
-## What the build does
+The 17-code ledger compares three publisher snapshots reviewed September 17, 2026. Eight entries are publisher-reported active; nine have disputed expiry status. None is falsely labelled personally redeemed. Exact roster rankings, merge recipes and probabilities are not invented.
 
-Runs the existing AnvilWiki `apply-template --answers` flow; selects English and Guides; removes demo articles and the upstream landing pages; resets advertising, analytics and comment identifiers; hides scaffold articles; adds one source-backed gameplay overview; replaces share art and common app icons; builds Astro and Pagefind.
+## Source of truth
 
-The source of the overview is the developer listing shown in the supplied screenshot, not an in-game playtest. No invented codes, unit rankings or drop probabilities are published. Source content is in `launch/content/`; the build copies it into the template's content directory.
+- `launch/release.mjs`: editorial content, code evidence, page components and release setup.
+- `launch/tools.mjs`: calculator math and on-device interactions.
+- `scripts/build-defeat-rng.mjs`: initializes the disposable Astro checkout, applies the release and generates branded assets.
+- `launch/verify.mjs`: calculator boundaries, all generated HTML/internal links, canonical domain, sitemap, search and indexing checks.
+- `launch/browser-check.mjs`: real desktop/mobile Chromium tests and screenshot evidence.
+- `launch/live-check.mjs`: confirms that the current commit is live on Cloudflare and checks real HTTP behavior.
 
-## Preview versus public content launch
+Generated config/content under `src/` is rebuilt on each deployment. Edit the launch source, not a generated disposable checkout. Content and code review dates are fixed editorial dates, never automatically advanced on build.
 
-This is a technical preview with one substantive game overview, not the article's recommended 10–15-page content launch and not an ad-ready website. Remaining template copy, informational pages, final domain and article coverage need editorial review. The preview sends `X-Robots-Tag: noindex, nofollow` by default. Only set `PUBLISH_READY=true` after that review; confirm the response headers before submitting a sitemap.
+## Deployment and indexing
 
-No Cloudflare project has been created by this commit. A successful GitHub build is not a deployment. The Actions workflow verifies the special preview build when repository Actions are enabled.
+`SITE_URL` defaults to the owner's confirmed stable Pages origin. Per-deployment URLs are not used as canonical URLs. To move to a custom domain, first attach it to this Cloudflare project, then explicitly supply its HTTPS origin as `SITE_URL` and redeploy.
+
+This release allows indexing by default. Set `PUBLISH_READY=false` to restore a global noindex header for a private review build. This is permission to crawl, not a claim that Google has indexed the site. A sitemap alias exists at `/sitemap.xml`, redirecting to `/sitemap-index.xml`.
+
+Advertising, analytics, comments and sponsors remain disabled. Do not enable them without the owner's accounts, required consent/privacy changes and checks. Search Console ownership verification, ad-network approval, payout/tax information and a paid domain require the owner's authorization; no placeholder tokens or credentials are included.
+
+## Verification
+
+The workflow builds, audits HTML, runs real browser interaction tests, uploads screenshots, and on pushes checks the deployed commit. A failed live check must not be reported as a successful deployment. Evidence artifacts expire after seven days; download them from the Actions run when needed.
+
+The website does not request a Roblox login. Correction requests use the existing public GitHub PR discussion; no fake contact email is generated. Upstream MIT license and attribution are retained.
