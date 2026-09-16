@@ -43,6 +43,9 @@ function hideScaffolds(dir) {
 hideScaffolds('src/content/wiki');
 const commit = process.env.CF_PAGES_COMMIT_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 applyRelease({ siteUrl: url.origin, commit, publishReady });
+// Dates, author, read time and Share need more than one row on small screens.
+// Wrap the actual metadata row instead of hiding document-wide overflow.
+fs.appendFileSync('src/styles/globals.css', `\narticle > header[data-pagefind-meta] > .mt-4 { flex-wrap: wrap; row-gap: .65rem; }\narticle > header[data-pagefind-meta] > .mt-4 > span { flex-shrink: 0; }\n@media(max-width:640px) { article > header[data-pagefind-meta] > .mt-4 > .ml-auto { margin-left: 0; } }\n`);
 
 // Neutral branded graphics, not invented game screenshots. All assets are local.
 const sharp = (await import('sharp')).default;
