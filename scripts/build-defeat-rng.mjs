@@ -2,17 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { applyRelease } from '../launch/release.mjs';
+import { resolveSiteOrigin } from '../launch/site-origin.mjs';
 
 const root = process.cwd();
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-const defaultSiteUrl = 'https://anvilwiki-786.pages.dev';
-const url = new URL(process.env.SITE_URL?.trim() || defaultSiteUrl);
-if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash || url.username || url.password) {
-  throw new Error('SITE_URL must be an HTTPS origin without credentials, path, query or fragment.');
-}
-if (['anvil.wiki', 'www.anvil.wiki', 'anvilwiki.pages.dev'].includes(url.hostname)) url.href = defaultSiteUrl;
+const url = new URL(resolveSiteOrigin(process.env.SITE_URL));
 const publishReady = process.env.PUBLISH_READY !== 'false';
 const env = { ...process.env, SITE_URL: url.origin };
+execFileSync(process.execPath, ['--test', 'launch/site-origin.test.mjs'], { cwd: root, stdio: 'inherit' });
 for (const key of Object.keys(env)) {
   if (/^PUBLIC_(ADSENSE|ADSTERRA|GISCUS|SPONSOR|GA_ID|CF_BEACON)/.test(key)) env[key] = '';
 }
@@ -43,8 +40,7 @@ function hideScaffolds(dir) {
 hideScaffolds('src/content/wiki');
 const commit = process.env.CF_PAGES_COMMIT_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 applyRelease({ siteUrl: url.origin, commit, publishReady });
-// Dates, author, read time and Share need more than one row on small screens.
-// Wrap the actual metadata row instead of hiding document-wide overflow.
+// Wrap the metadata row instead of hiding document-wide overflow.
 fs.appendFileSync('src/styles/globals.css', `\narticle > header[data-pagefind-meta] > .mt-4 { flex-wrap: wrap; row-gap: .65rem; }\narticle > header[data-pagefind-meta] > .mt-4 > span { flex-shrink: 0; }\n@media(max-width:640px) { article > header[data-pagefind-meta] > .mt-4 > .ml-auto { margin-left: 0; } }\n`);
 
 // Neutral branded graphics, not invented game screenshots. All assets are local.
@@ -65,5 +61,7 @@ for (const item of manifest.icons || []) {
   await sharp(Buffer.from(icon)).resize(size, size).toFile(target);
 }
 execFileSync(pnpm, ['build'], { cwd: root, env, stdio: 'inherit' });
+const build = JSON.parse(fs.readFileSync('dist/dar-build.json', 'utf8'));
+if (build.siteUrl !== url.origin) throw new Error(`Build origin mismatch: ${build.siteUrl}`);
 execFileSync(process.execPath, ['launch/verify.mjs'], { cwd: root, env, stdio: 'inherit' });
 console.log(`DAR Guide release built and audited for ${url.origin}; search indexing ${publishReady ? 'allowed' : 'disabled'}.`);

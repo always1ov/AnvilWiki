@@ -1,11 +1,12 @@
-# Deployment preview branch. No upstream advertising, analytics or comment IDs.
+# DAR Guide production. No upstream advertising, analytics or comment IDs.
 name = "defeat-rng-guide-always1ov"
 compatibility_date = "2026-09-17"
 pages_build_output_dir = "dist"
 
-# SITE_URL may be set in the build environment. The build script falls back
-# to Cloudflare's CF_PAGES_URL, then to the proposed Pages project name.
+# Keep the official origin stable; never use a per-deployment pages.dev URL.
+# The build script also normalizes stale template/preview SITE_URL values.
 [vars]
+SITE_URL = "https://defeatanimerngwiki.com"
 PUBLIC_GISCUS_REPO = ""
 PUBLIC_GISCUS_REPO_ID = ""
 PUBLIC_GISCUS_CATEGORY = ""
