@@ -1,12 +1,13 @@
-# DAR Guide production. No upstream advertising, analytics or comment IDs.
+# DAR Guide deployment. No upstream advertising, analytics or comment IDs.
 name = "defeat-rng-guide-always1ov"
 compatibility_date = "2026-09-17"
 pages_build_output_dir = "dist"
 
-# Keep the official origin stable; never use a per-deployment pages.dev URL.
-# The build script also normalizes stale template/preview SITE_URL values.
+# Production origin is owned by launch/site-origin.mjs and the launch answers.
+# build-defeat-rng.mjs passes it as SITE_URL and writes it into the generated
+# wrangler vars through apply-template. Keep the raw template fixture neutral
+# so upstream demo-value drift tests do not misclassify the user's domain.
 [vars]
-SITE_URL = "https://defeatanimerngwiki.com"
 PUBLIC_GISCUS_REPO = ""
 PUBLIC_GISCUS_REPO_ID = ""
 PUBLIC_GISCUS_CATEGORY = ""
