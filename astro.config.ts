@@ -52,6 +52,7 @@ function buildLastmodMap(
   noindexPaths: Set<string>,
   coverage: Map<string, Set<string>>,
   categoryCoverage: Map<string, Set<string>>,
+  localesWithTags: Set<string>,
 ): Map<string, string> {
   const map = new Map<string, string>();
   const base = path.resolve('./src/content/wiki');
@@ -105,6 +106,17 @@ function buildLastmodMap(
       catCov.add(loc);
       categoryCoverage.set(cat, catCov);
 
+      // Tag coverage: does this locale have >=1 published article carrying a
+      // tag? Drives the empty-tag-index exclusion below. Accept both the
+      // inline (`tags: []`) and block (`tags:\n  - x`) spellings js-yaml
+      // resolves -- an inline-only check would read a block list as untagged.
+      const inlineTags = fm.match(/^tags:\s*\[([\s\S]*?)\]/m)?.[1];
+      const hasTags =
+        inlineTags !== undefined
+          ? inlineTags.trim() !== ''
+          : /^tags:[ \t]*\r?\n[ \t]*-[ \t]*\S/m.test(fm);
+      if (hasTags) localesWithTags.add(loc);
+
       // List pages: newest article in the category wins.
       const listPath = loc === defaultLocale ? `/${cat}` : `/${loc}/${cat}`;
       const existing = map.get(listPath);
@@ -134,6 +146,15 @@ function buildLastmodMap(
       if (covered?.has(l)) continue;
       noindexPaths.add(l === defaultLocale ? `/${cat}` : `/${l}/${cat}`);
     }
+  }
+
+  // Empty tag indexes: a locale whose published articles carry no tags renders
+  // TagsIndexPage's empty state -- the same thin content as an empty category
+  // list, so it is noindex on the page side and excluded from the sitemap here.
+  // Same paths, same truth.
+  for (const l of locales) {
+    if (localesWithTags.has(l)) continue;
+    noindexPaths.add(l === defaultLocale ? '/tags' : `/${l}/tags`);
   }
 
   // Handbook chapters (docs/handbook/<locale>/<slug>.md) → /landing/docs/<slug>
@@ -178,7 +199,8 @@ const normalizePath = (p: string) => (p !== '/' && p.endsWith('/') ? p.slice(0, 
 const noindexPaths = new Set<string>();
 const localeCoverage = new Map<string, Set<string>>();
 const categoryCoverage = new Map<string, Set<string>>();
-const lastmodMap = buildLastmodMap(noindexPaths, localeCoverage, categoryCoverage);
+const localesWithTags = new Set<string>();
+const lastmodMap = buildLastmodMap(noindexPaths, localeCoverage, categoryCoverage, localesWithTags);
 
 /**
  * Article/list hreflang alternates that match the page-level <head> truth.

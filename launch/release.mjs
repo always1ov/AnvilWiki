@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const REVIEWED = '2026-09-17';
+// Per-page editorial review dates. A page keeps REVIEWED until its own content
+// is actually revised: advancing the shared constant would move every page's
+// date and tell Google that pages nobody touched had changed.
+const REVISED_UNIT_RANKING = '2026-09-20';
 export const VERSION = 'dar-2026.09.17.1';
 const game = 'https://www.roblox.com/games/92606991708989/Defeat-Anime-RNG';
 const sources = {
@@ -36,8 +40,8 @@ export const codes = [
 ].map(([code, reward, status, note]) => ({ code, reward, status, note }));
 
 const pages = [];
-function page(category, slug, title, description, summary, body) {
-  pages.push({ category, slug, title, description, summary, body });
+function page(category, slug, title, description, summary, body, reviewed = REVIEWED) {
+  pages.push({ category, slug, title, description, summary, body, reviewed });
 }
 page('codes', 'latest', 'Defeat Anime RNG Codes: Reported Rewards and Status',
   'Compare reported Defeat Anime RNG codes, copy rewards, see disputed expiry claims and follow the in-game redemption steps.',
@@ -181,9 +185,9 @@ Our suggested stopping points are reaching your budget, obtaining your predefine
 
 [Pro Game Guides, Trait Shards section](${sources.pgg}), reviewed September 17, 2026. This page intentionally does not invent a full trait table, prices, pity system or probabilities.
 `);
-page('guides', 'units-and-merging', 'Defeat Anime RNG Units and Merging: Upgrade Checklist',
-  'Separate unit level, traits and mutation claims, and use a before-and-after checklist when considering a merge or team upgrade.',
-  'The developer describes merging units to raise their levels, but its listing does not provide an exact recipe or transfer rules. Treat the live confirmation screen as the authority for costs and consumed units. Compare upgrades against a repeatable battle rather than assuming a rarer name always performs better.',
+page('guides', 'units-and-merging', 'Defeat Anime RNG Unit Tiers: How to Rank and Merge Your Units',
+  'Work out which of your Defeat Anime RNG units is actually strongest from damage, traits and merge cost, with a checklist to run before every upgrade.',
+  'No verified public roster exists for Defeat Anime RNG, so no honest fixed tier list can be published yet. What you can do is rank the units you own: record damage, attack interval, traits and mutations, compare them on one repeatable stage, and check the merge cost before you commit.',
 `## What does the developer confirm about merging?
 
 The [developer listing](${game}) explicitly describes merging anime units to increase their levels. It also lists rare units and mutations among the collection features. It does **not** establish how many copies a merge consumes, a maximum level, or how traits and mutations transfer. A useful guide must keep those missing details separate from the advertised feature.
@@ -210,16 +214,24 @@ This is a safety checklist, not a description of buttons we have not tested. If 
 
 Choose a repeatable stage and keep other conditions as similar as practical. Note the team, target, time and relevant temporary boosts. Change one thing, then repeat several times. A stronger-looking stat card alone does not show the effect of targeting, range, downtime or team support.
 
-Use the [unit comparison calculator](/tools/unit-comparison/) for arithmetic from your own values. It models expected single-target damage only. It is not a replacement for observing a real battle and does not claim to be a definitive tier list.
+Use the [unit comparison calculator](/tools/unit-comparison/) for arithmetic from your own values. It models expected single-target damage only, so treat the output as one input rather than a verdict: a real battle also involves range, targeting and team support.
 
-## What does this site avoid ranking?
+## How do you build your own tier list?
 
-We do not publish a complete strongest-unit order without a verified roster and a consistent test setup. A tier table with precise-looking numbers is not useful when nobody can explain the version, conditions or source of those numbers. Our [editorial policy](/editorial-policy/) explains the evidence labels used across the site.
+A published tier list is only as trustworthy as the roster and test conditions behind it. No verified public roster exists for this game yet, so rank the units you actually own instead of copying an order you cannot check:
+
+1. **List what you have.** One row per unit: exact in-game name, level, displayed damage, attack timing, current trait and any visible mutation.
+2. **Use one stage.** Pick a single repeatable battle and run each unit under conditions kept as similar as you can.
+3. **Compare the arithmetic.** Feed your recorded values into the [unit comparison calculator](/tools/unit-comparison/) for estimated single-target damage.
+4. **Note what the number misses.** Range, targeting, area damage and support effects never appear in a DPS figure. A unit that loses on paper can still clear a wave faster.
+5. **Re-check after an update.** A balance patch can invalidate your order, so date your notes and repeat step 2.
+
+The result is a ranking you can explain and defend for your account and your current game version. We do not publish a fixed strongest-unit order, because a tier table with precise-looking numbers is not useful when nobody can explain the version, conditions or source behind it. Our [editorial policy](/editorial-policy/) explains the evidence labels used across the site.
 
 ## Source
 
-[Developer's Roblox listing](${game}), supplied listing capture reviewed September 17, 2026. The upgrade checklist and comparison method are DAR Guide's recommendations, not additional claims about undisclosed mechanics.
-`);
+[Developer's Roblox listing](${game}), supplied listing capture reviewed September 17, 2026. The upgrade checklist and ranking method are DAR Guide's recommendations, not additional claims about undisclosed mechanics. The ranking method on this page was last revised September 20, 2026; the source review date above is unchanged.
+`, REVISED_UNIT_RANKING);
 page('guides', 'official-links', 'Defeat Anime RNG Official Game Link and Useful Resources',
   'Open the correct Roblox experience, distinguish official sources from community guides and find relevant support and gameplay videos.',
   'The game listing linked here identifies Defeat Anime Bosses as the creator and uses experience ID 92606991708989. Use that identity to avoid confusing similarly named anime games. Official platform support, publisher guides and creator videos serve different purposes and are labelled separately below.',
@@ -375,8 +387,8 @@ No. Choose a time or resource limit independently of the estimate. A long unluck
 The formula is shown above and implemented locally in your browser. No account connection is used, and the tool does not send your inputs to a server. Numerical edge cases, invalid input and the worked example are checked in the project's automated tests.
 `);
 page('tools', 'unit-comparison', 'Unit DPS Comparison Calculator: Compare Your Own Stats',
-  'Compare two units using damage, attack interval, critical chance and uptime without relying on an invented Defeat Anime RNG tier list.',
-  'Enter comparable stats for two units to estimate expected single-target damage per second. Use attack interval in seconds, not attacks per second. The tool is a mathematical comparison of your inputs, not a definitive tier list; it does not model area damage, support skills, targeting or enemy defenses.',
+  'Free Defeat Anime RNG DPS calculator: enter damage, attack interval, critical chance and uptime for two units and see which one actually hits harder.',
+  'Enter comparable stats for two units to estimate expected single-target damage per second. Use attack interval in seconds, not attacks per second. Because the calculation runs on values you read in your own game, it stays accurate for your account and version. It does not model area damage, support skills, targeting or enemy defenses.',
 `import DecisionTool from '~/components/dar/DecisionTool.astro';
 
 ## Which of your two units has the higher estimated damage rate?
@@ -397,11 +409,11 @@ Estimated damage rate is **damage ÷ interval × [1 + critical chance × (critic
 
 A hypothetical 100 damage every two seconds, 20% critical chance, double-damage critical hits and full uptime produces an expected 60 DPS. The calculator computes an average damage rate, not the exact damage in every short fight.
 
-## Why is this not a complete tier list?
+## How does this fit into a tier list?
 
 A unit with lower single-target DPS might still offer useful crowd control, support, range or area attacks. Cost and accessibility can also affect a team decision. Those are separate comparisons, not hidden bonuses added to this calculator.
 
-The labels A and B are deliberately generic: we have not established a complete current roster or assigned unverified character values. Treat the output as one input to your decision, then observe actual battles under repeatable conditions. See [the unit upgrade checklist](/guides/units-and-merging/) for a practical record of those conditions.
+The labels A and B are deliberately generic: we have not established a complete current roster or assigned unverified character values. Treat the output as one input to your decision, then observe actual battles under repeatable conditions. To turn a set of these comparisons into a ranking of the units you own, follow the five-step method in [how to rank and merge your units](/guides/units-and-merging/).
 
 ## What are the model's limits?
 
@@ -425,7 +437,7 @@ const htmlEscape = (s) => s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;',
 export function applyRelease({ siteUrl, commit, publishReady }) {
   const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
   for (const entry of pages) {
-    const meta = { title: entry.title, description: entry.description, category: entry.category, date: REVIEWED, lastModified: REVIEWED, tags: [], author: 'DAR Guide Editorial', summary: entry.summary, draft: false };
+    const meta = { title: entry.title, description: entry.description, category: entry.category, date: entry.reviewed, lastModified: entry.reviewed, tags: [], author: 'DAR Guide Editorial', summary: entry.summary, draft: false };
     const frontmatter = Object.entries(meta).map(([key,value]) => `${key}: ${JSON.stringify(value)}`).join('\n');
     write(`src/content/wiki/en/${entry.category}/${entry.slug}.mdx`, `---\n${frontmatter}\n---\n\n${entry.body}\n`);
   }
@@ -489,15 +501,17 @@ const guides = data.catalog.filter((p) => p.category === 'guides');
   }
   write('src/pages/faq.astro', `---
 import LocaleLayout from '~/components/layout/LocaleLayout.astro';
+import { faqPageJsonLd } from '~/lib/seo';
 const items = [
   ['Is this the official Wiki?', 'No. DAR Guide is an independent fan guide, not affiliated with Roblox or Defeat Anime Bosses.'],
   ['Are all listed codes personally tested?', 'No. The code ledger compares dated publisher reports and visibly separates disputed status claims.'],
   ['Does this website require my Roblox login?', 'No. Reading guides and using the calculators do not require an account here. Playing the game uses Roblox’s own sign-in flow.'],
   ['Are calculator defaults actual character stats?', 'No. They are mathematical examples. Replace them with values you can verify in the current game.'],
-  ['Do you have a definitive unit tier list?', 'No verified complete ranking is published. The unit-comparison tool instead explains exactly what can be calculated from supplied inputs.'],
+  ['Do you have a definitive unit tier list?', 'Not a fixed one: no verified public roster exists yet, and a ranking nobody can trace to a game version and test setup is not worth publishing. The units guide gives a five-step method for ranking the units you actually own instead.'],
 ];
+const jsonLd = [faqPageJsonLd(items.map(([question, answer]) => ({ question, answer })))];
 ---
-<LocaleLayout locale="en" title="Frequently Asked Questions" description="Answers about this independent guide, reported codes, source reviews, account privacy and the limits of our game calculators."><article class="prose mx-auto max-w-3xl dark:prose-invert" data-pagefind-body><h1>Frequently asked questions</h1>{items.map(([q,a]) => <section><h2>{q}</h2><p>{a}</p></section>)}<p><a href="/contact/">Report a correction</a> · <a href="/codes/latest/">View codes</a> · <a href="/tools/">Open tools</a></p></article></LocaleLayout>
+<LocaleLayout locale="en" title="Frequently Asked Questions" description="Answers about this independent guide, reported codes, source reviews, account privacy and the limits of our game calculators." jsonLd={jsonLd}><article class="prose mx-auto max-w-3xl dark:prose-invert" data-pagefind-body><h1>Frequently asked questions</h1>{items.map(([q,a]) => <section><h2>{q}</h2><p>{a}</p></section>)}<p><a href="/contact/">Report a correction</a> · <a href="/codes/latest/">View codes</a> · <a href="/tools/">Open tools</a></p></article></LocaleLayout>
 `);
   write('src/components/footer/SiteFooter.astro', `---
 ---
